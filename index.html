@@ -5,15 +5,62 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>OZ – test</title>
 <style>
-  body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0b1530;color:#f2e6c0;font-family:system-ui,sans-serif;text-align:center}
-  h1{font-size:2.4rem;margin:0 0 .5rem}
-  p{opacity:.8;margin:0}
+  body{margin:0;min-height:100vh;display:grid;place-items:center;background:#0b1530;color:#f2e6c0;font-family:system-ui,sans-serif;text-align:center;padding:1rem;box-sizing:border-box}
+  main{width:100%;max-width:420px}
+  h1{font-size:2.2rem;margin:0 0 .5rem}
+  p{opacity:.8;margin:0 0 1.2rem}
+  form{display:flex;gap:.5rem;margin-bottom:1rem}
+  input{flex:1;font-size:16px;padding:.7rem;border-radius:8px;border:1px solid #f2e6c0;background:#12204a;color:#f2e6c0}
+  button{font-size:16px;padding:.7rem 1rem;border:0;border-radius:8px;background:#d4af37;color:#0b1530;font-weight:600;cursor:pointer}
+  ul{list-style:none;padding:0;margin:0;text-align:left}
+  li{padding:.5rem .7rem;border-bottom:1px solid #26366b}
+  #etat{min-height:1.4em;font-size:.9rem;opacity:.9}
 </style>
 </head>
 <body>
   <main>
     <h1>OZ – test</h1>
-    <p>2e changement : mise à jour automatique OK.</p>
+    <p>Netlify + GitHub + Supabase</p>
+    <form id="f">
+      <input id="t" maxlength="200" placeholder="Écris une note" required>
+      <button type="submit">Enregistrer</button>
+    </form>
+    <div id="etat"></div>
+    <ul id="liste"></ul>
   </main>
+<script>
+  // Clé « publishable » : faite pour être publique. Jamais de clé secrète ici.
+  var URL_SB = "https://pypvwsoujoyjclnguphb.supabase.co";
+  var CLE = "sb_publishable_A2gwINuR6XH0xa4kwJJt8w_Lu6JNIXw";
+  var H = {"apikey": CLE, "Authorization": "Bearer " + CLE, "Content-Type": "application/json"};
+  var etat = document.getElementById("etat"), liste = document.getElementById("liste");
+
+  function charger(){
+    fetch(URL_SB + "/rest/v1/notes?select=texte,created_at&order=created_at.desc&limit=10", {headers: H})
+      .then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function(rows){
+        liste.innerHTML = "";
+        rows.forEach(function(n){
+          var li = document.createElement("li");
+          li.textContent = n.texte;
+          liste.appendChild(li);
+        });
+        if(!rows.length) etat.textContent = "Aucune note pour l'instant.";
+      })
+      .catch(function(){ etat.textContent = "Impossible de lire les notes."; });
+  }
+
+  document.getElementById("f").addEventListener("submit", function(e){
+    e.preventDefault();
+    var champ = document.getElementById("t"), texte = champ.value.trim();
+    if(!texte) return;
+    etat.textContent = "Envoi…";
+    fetch(URL_SB + "/rest/v1/notes", {method: "POST", headers: H, body: JSON.stringify({texte: texte})})
+      .then(function(r){ if(!r.ok) throw new Error(r.status); champ.value = ""; etat.textContent = "Enregistré."; charger(); })
+      .catch(function(){ etat.textContent = "Échec de l'enregistrement."; });
+  });
+
+  charger();
+</script>
 </body>
 </html>
